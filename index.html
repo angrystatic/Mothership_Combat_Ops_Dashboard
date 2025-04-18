@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mothership Crew Manifest (v1.0)</title>
+    <style>
+        /* Import Google Font */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        :root {
+            /* --- Theme Configuration (Light/Default - Green Terminal) --- */
+            --monitor-bg: black;
+            --primary-color: lime; /* Bright Green */
+            --warning-color: #FFD700; /* Gold/Yellow (Used for Damaged) */
+            --critical-color: #FF851B; /* Orange (Could be used for low HP Damaged) */
+            --dead-color: #555555; /* Dark Grey */
+            --card-bg: #1a1a1a; /* Dark Background for card */
+            --card-border-color: var(--primary-color);
+            --text-color: var(--primary-color); /* Primary text color */
+            --overlay-text-color: white; /* Brighter text for overlay */
+            --input-bg: #222;
+            --input-border: var(--primary-color);
+            --grid-color: rgba(0, 255, 0, 0.08); /* Faint green grid */
+            --font-family: 'VT323', monospace; /* Retro pixel font */
+            --text-shadow: 1px 1px 2px black; /* Shadow for overlay readability */
+            --card-shadow: 3px 3px 8px rgba(0, 0, 0, 0.7);
+            --disabled-color: #777;
+            --disabled-input-bg: #333;
+            --button-text-color: var(--text-color); /* Default button text */
+            --button-hover-bg: var(--primary-color);
+            --button-hover-text: black;
+            --button-hover-border: var(--primary-color);
+            /* Removed Incapacitated/Broken/Revive specific colors */
+
+            /* --- Dark Theme Variables (Example: Blue Terminal) --- */
+            --dark-bg-color: #05101f; /* Very dark blue */
+            --dark-card-bg: #0a182f;
+            --dark-primary-color: #7FDBFF; /* Aqua */
+            --dark-text-color: var(--dark-primary-color);
+            --dark-overlay-text-color: #f0f8ff; /* AliceBlue */
+            --dark-card-border-color: var(--dark-primary-color);
+            --dark-input-bg: #1a284f;
+            --dark-input-border: var(--dark-primary-color);
+            --dark-grid-color: rgba(127, 219, 255, 0.08); /* Faint aqua grid */
+            --dark-warning-color: #FFDC00; /* Yellow */
+            --dark-critical-color: #FF851B; /* Orange */
+            --dark-dead-color: #666;
+            --dark-disabled-color: #555;
+            --dark-disabled-input-bg: #222;
+            --dark-button-hover-bg: var(--dark-primary-color);
+            --dark-button-hover-text: #05101f;
+            --dark-button-hover-border: var(--dark-primary-color);
+            /* Removed unused dark variables */
+        }
+
+        body {
+            font-family: var(--font-family); background-color: var(--card-bg); color: var(--text-color);
+            margin: 0; padding: 0; font-size: 18px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .main-controls { text-align: center; margin: 20px 0; }
+        .main-controls button {
+            background-color: var(--input-bg); color: var(--button-text-color); border: 2px solid var(--input-border);
+            font-family: inherit; font-size: 1.1em; padding: 8px 15px; border-radius: 4px;
+            cursor: pointer; text-transform: uppercase; margin: 0 10px;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .main-controls button:hover:not(:disabled) { background-color: var(--button-hover-bg); color: var(--button-hover-text); border-color: var(--button-hover-border); }
+        .main-controls button:active:not(:disabled) { transform: translateY(1px); }
+        #clear-data-button { border-color: var(--critical-color); color: var(--critical-color);} /* Using critical color */
+        #clear-data-button:hover:not(:disabled) { background-color: var(--critical-color); color: white; border-color: var(--critical-color);}
+
+
+        h1 { color: var(--primary-color); text-align: center; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; text-shadow: 1px 1px 0px rgba(0,0,0,0.5);}
+        .dashboard-container { padding: 0 20px 20px 20px; max-width: 1800px; margin: 0 auto;}
+        .dashboard { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; }
+
+        .character-card {
+            border: 3px solid var(--card-border-color); background-color: var(--card-bg); padding: 10px;
+            border-radius: 4px; width: 320px; /* Adjust width if needed for Saves */
+            box-shadow: inset 0 0 8px 0px rgba(0, 0, 0, 0.5), 3px 3px 8px rgba(0, 0, 0, 0.7);
+            display: flex; flex-direction: column; color: var(--text-color); position: relative;
+            transition: border-color 0.3s ease, opacity 0.3s ease;
+        }
+
+        /* Remove Button Styling */
+        .remove-button {
+            position: absolute; top: 3px; right: 3px; background-color: #500; color: #fcc; border: 1px solid #a00;
+            border-radius: 50%; width: 22px; height: 22px; font-size: 12px; font-weight: bold; line-height: 20px;
+            text-align: center; cursor: pointer; padding: 0; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); z-index: 10;
+        }
+        .remove-button:hover { background-color: #a00; color: white; }
+
+        /* Health Monitor Area */
+        .health-monitor {
+            background-color: var(--monitor-bg); border: 1px solid var(--text-color); border-radius: 2px;
+            width: 100%; height: 160px; /* Reduced height slightly */
+            overflow: hidden; position: relative; margin-bottom: 10px;
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 12px 12px; cursor: crosshair;
+        }
+        .svg-container { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 22px); z-index: 1; pointer-events: none; }
+        .health-monitor svg { display: block; width: 100%; height: 100%; }
+        .health-monitor path { stroke-dasharray: 3000; }
+
+        /* HP Gradient Bar Styles - Adjusted colors slightly */
+        .hp-gradient-bar { position: absolute; bottom: 5px; left: 5px; right: 5px; height: 12px; border-radius: 2px; background: linear-gradient(to right, var(--critical-color) 0%, var(--warning-color) 50%, var(--primary-color) 100%); z-index: 0; box-shadow: inset 0 0 3px 1px rgba(0,0,0,0.7); pointer-events: none; }
+        .hp-gradient-mask { position: absolute; bottom: 5px; right: 5px; height: 12px; background-color: var(--monitor-bg); width: 0%; z-index: 0; transition: width 0.3s ease-out; border-radius: 0 2px 2px 0; pointer-events: none; }
+
+        /* Overlay Text Container */
+        .monitor-text-overlay { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 22px); padding: 5px 8px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; z-index: 2; pointer-events: none; }
+        .monitor-text-overlay > * { pointer-events: auto; } .monitor-text-overlay > div { pointer-events: none; } .monitor-text-overlay > div > * { pointer-events: auto; }
+
+        /* Name Display & Edit Input Styles */
+        .char-name-display { display: inline-block; background-color: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 2px; font-size: 1.6em; color: var(--overlay-text-color); text-shadow: var(--text-shadow); text-transform: uppercase; cursor: pointer; max-width: calc(100% - 30px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .char-name-edit { display: none; background-color: var(--input-bg); border: 1px solid var(--warning-color); color: var(--overlay-text-color); font-family: inherit; font-size: 1.6em; text-transform: uppercase; padding: 1px 5px; width: calc(100% - 30px); box-sizing: border-box; outline: none; }
+        /* Status Text Overlay Style */
+        .status-overlay { align-self: flex-end; background-color: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 2px; font-size: 1.1em; font-weight: bold; color: var(--overlay-text-color); text-shadow: var(--text-shadow); text-transform: uppercase; }
+
+
+        /* Sections Below Monitor */
+        .hp-controls, .info-grid, .saves-panel { padding: 8px 5px; margin-top: 8px; border-top: 1px solid rgba(var(--primary-color), 0.3); } /* Renamed condition-action-panel */
+        .hp-controls { margin-top: 0; border-top: none; padding-top: 0;}
+
+        /* HP Controls Area */
+        .hp-controls { display: flex; flex-direction: column; gap: 8px; align-items: center; padding-bottom: 10px; }
+        .hp-adjust { display: flex; justify-content: center; align-items: center; width: 100%; }
+        .hp-adjust label { margin: 0 10px; }
+        .hp-adjust button { width: 45px; height: 35px; padding: 0; font-size: 1.5em; line-height: 1; cursor: pointer; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; }
+        .hp-inputs-wrapper { display: flex; justify-content: space-around; width: 100%; margin-top: 5px;}
+        .hp-input-group { display: flex; flex-direction: column; align-items: center; font-size: 0.9em;}
+        .hp-input-group label { margin-bottom: 2px; text-transform: uppercase; }
+        .hp-input-group input { width: 60px; text-align: right; padding: 2px 4px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; font-family: inherit; font-size: 1em; -moz-appearance: textfield; }
+        .hp-input-group input::-webkit-inner-spin-button, .hp-input-group input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Info Grid (Type, Stress) */
+        .info-grid { display: flex; flex-direction: column; gap: 8px; }
+        .stat-adjust { display: flex; justify-content: space-between; align-items: center; }
+        .info-grid label { font-weight: normal; margin-right: 5px; color: var(--text-color); flex-shrink: 0; }
+        .value-adjust-wrapper { display: flex; align-items: center; gap: 5px; }
+        .value-adjust-wrapper button { width: 25px; height: 25px; padding: 0; font-size: 1.1em; line-height: 1; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; cursor: pointer; }
+        .value-adjust-wrapper button:hover:not(:disabled) { background-color: var(--button-hover-bg); color: var(--button-hover-text); border-color: var(--button-hover-border); }
+        .value-adjust-wrapper button:active:not(:disabled) { transform: translateY(1px); }
+        .value-adjust-wrapper input[type="number"] { width: 50px; text-align: right; padding: 2px 4px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; font-family: inherit; font-size: 1em; -moz-appearance: textfield; }
+        .value-adjust-wrapper input[type=number]::-webkit-inner-spin-button, .value-adjust-wrapper input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input:disabled { background-color: var(--disabled-input-bg) !important; opacity: 0.6; cursor: not-allowed; border-color: var(--disabled-color) !important; color: var(--disabled-color) !important; }
+        button:disabled { opacity: 0.5; cursor: not-allowed !important; background-color: var(--input-bg) !important; color: var(--disabled-color) !important; border-color: var(--disabled-color) !important; }
+
+        /* Style for Type Selector */
+        .type-select { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; font-family: inherit; font-size: 1em; padding: 2px 4px; flex-grow: 1; max-width: 150px; }
+        .type-select:focus { outline: none; border-color: var(--warning-color); }
+
+        /* Saves Panel (Replaces Condition/Action) */
+        .saves-panel { display: grid; grid-template-columns: repeat(2, 1fr); /* 2 columns for saves */ gap: 8px 15px; /* Row gap, Column gap */ }
+        .save-input-group { display: flex; align-items: center; justify-content: space-between; /* Align label left, input right */ }
+        .save-input-group label { font-size: 0.95em; text-transform: uppercase; margin-right: 5px; }
+        .save-input-group input { width: 50px; text-align: right; padding: 2px 4px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 2px; font-family: inherit; font-size: 1em; -moz-appearance: textfield; }
+        .save-input-group input::-webkit-inner-spin-button, .save-input-group input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Action Button Area (Just Mark Dead now) */
+        .action-button-area { padding: 8px 5px; margin-top: 8px; border-top: 1px solid rgba(var(--primary-color), 0.3); text-align: center; }
+        .action-button-area button { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); font-family: inherit; font-size: 1em; padding: 6px 12px; border-radius: 2px; cursor: pointer; text-transform: uppercase; width: auto; /* Adjust width */ }
+        .action-button-area button:hover:not(:disabled) { background-color: var(--button-hover-bg); color: var(--button-hover-text); border-color: var(--button-hover-border); }
+        .action-button-area button:active:not(:disabled) { transform: translateY(1px); }
+        .mark-dead-btn { border-color: var(--dead-color); color: var(--dead-color); }
+        .mark-dead-btn:hover:not(:disabled) { background-color: var(--dead-color); color: white; border-color: var(--dead-color); }
+
+
+        /* --- Status-Specific Styling --- */
+        .character-card.status-dead { border-color: var(--dead-color); box-shadow: inset 0 0 8px 0px rgba(100,100,100, 0.5), 3px 3px 8px rgba(0, 0, 0, 0.7); opacity: 0.7; }
+        .character-card.status-dead .monitor-text-overlay, .character-card.status-dead .hp-controls, .character-card.status-dead .info-grid, .character-card.status-dead .saves-panel, .character-card.status-dead .health-monitor, .character-card.status-dead .action-button-area { filter: grayscale(90%); }
+        .character-card.status-dead .monitor-text-overlay *, .character-card.status-dead .hp-controls *, .character-card.status-dead .info-grid *, .character-card.status-dead .saves-panel *, .character-card.status-dead .action-button-area button { color: var(--dead-color) !important; border-color: var(--dead-color) !important; text-shadow: 1px 1px 2px black; }
+
+        /* Allow interaction ONLY with Remove/Name/MaxHP/Type/Saves when dead */
+        .character-card.status-dead input, .character-card.status-dead button, .character-card.status-dead select { pointer-events: none !important; }
+        .character-card.status-dead .remove-button,
+        .character-card.status-dead .char-name-display, /* Allow clicking name */
+        .character-card.status-dead .char-name-edit, /* Allow editing name */
+        .character-card.status-dead .input-hp-max, /* Allow max HP change */
+        .character-card.status-dead .type-select, /* Allow type change */
+        .character-card.status-dead .input-save-body, /* Allow save editing */
+        .character-card.status-dead .input-save-fear,
+        .character-card.status-dead .input-save-sanity,
+        .character-card.status-dead .input-save-armor
+          { pointer-events: auto !important; filter: none; opacity: 1; }
+        .character-card.status-dead .char-name-display { cursor: pointer; } /* Keep pointer for name */
+        /* No special Revive button needed */
+
+        /* Simplified status borders */
+        .character-card.status-damaged { border-color: var(--warning-color); }
+        /* Removed critical, broken, incapacitated borders */
+
+
+        /* --- Dark Mode Overrides --- */
+        /* Minimal changes needed here as core structure is similar */
+        body.dark-mode { /* ... Copy existing dark mode variable assignments ... */
+            --monitor-bg: var(--dark-monitor-bg, #05101f); /* Example if you add specific monitor bg */
+            --card-bg: var(--dark-card-bg);
+            --card-border-color: var(--dark-card-border-color);
+            --text-color: var(--dark-text-color);
+            --primary-color: var(--dark-primary-color);
+            --warning-color: var(--dark-warning-color);
+            --critical-color: var(--dark-critical-color);
+            --dead-color: var(--dark-dead-color);
+            --overlay-text-color: var(--dark-overlay-text-color);
+            --input-bg: var(--dark-input-bg);
+            --input-border: var(--dark-input-border);
+            --grid-color: var(--dark-grid-color);
+            --disabled-color: var(--dark-disabled-color);
+            --disabled-input-bg: var(--dark-disabled-input-bg);
+            --button-text-color: var(--dark-text-color);
+            --button-hover-bg: var(--dark-button-hover-bg);
+            --button-hover-text: var(--dark-button-hover-text);
+            --button-hover-border: var(--dark-button-hover-border);
+         }
+        body.dark-mode .status-overlay { background-color: rgba(255,255,255,0.1); }
+        /* Adjust status overlays if needed */
+        body.dark-mode .remove-button { background-color: #3080a0; border-color: var(--dark-primary-color); } /* Adjusted dark remove color */
+        body.dark-mode .remove-button:hover { background-color: var(--dark-critical-color); }
+        body.dark-mode .char-name-display, body.dark-mode .monitor-text-overlay .status-overlay { background-color: rgba(255, 255, 255, 0.1); text-shadow: var(--text-shadow); }
+        body.dark-mode input:disabled { background-color: var(--dark-disabled-input-bg) !important; }
+        body.dark-mode button:disabled { color: var(--dark-disabled-color) !important; border-color: var(--dark-disabled-color) !important; background-color: var(--dark-input-bg) !important;}
+        body.dark-mode .mark-dead-btn { border-color: var(--dark-dead-color); color: var(--dark-dead-color); }
+        body.dark-mode .mark-dead-btn:hover:not(:disabled) { background-color: var(--dark-dead-color); color: white; border-color: var(--dark-dead-color); }
+
+
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <h1>MOTHERSHIP :: CREW MANIFEST / PANIC DASHBOARD</h1>
+    <div class="main-controls">
+        <button onclick="addCombatant()">Add Unit</button> <button id="theme-toggle-button" onclick="toggleTheme()">Toggle Theme</button>
+        <button id="clear-data-button" onclick="clearSavedData()">Clear Saved Data</button>
+    </div>
+    <div class="dashboard" id="dashboard">
+        </div>
+</div>
+
+<script>
+    // --- SVG Data Store ---
+    // Simplified states for Mothership (Healthy, Damaged, Dead)
+    const svgStates = {
+        healthy: `<svg width="100%" height="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid slice"><rect width="100%" height="100%" fill="black"/> <path d="M17.902,114.475h26.949c2.296,0,12.876-10.182,20.063-10.182 c7.186,0,10.83,10.182,12.576,10.182h18.266l7.187,10.779l7.485-100.91l5.091,114.984l6.887-24.554h24.41 c3.239,0,14.816-16.769,20.206-16.769s11.08,16.47,13.475,16.47c2.845,0,26.665,0,26.665,0l27.757,0 c2.296,0,12.875-10.181,20.062-10.181c7.186,0,10.831,10.181,12.577,10.181h18.266l7.187,10.779l7.485-100.91l5.091,114.984 l6.888-24.555h24.41c3.24,0,14.817-16.768,20.207-16.768s11.079,16.469,13.474,16.469c2.845,0,26.666,0,26.666,0h27.813 c2.297,0,12.877-10.181,20.063-10.181s10.829,10.181,12.576,10.181h18.265l7.188,10.779l7.485-100.91l5.092,114.984l6.887-24.555 h24.409c3.238,0,14.816-16.768,20.206-16.768s11.08,16.469,13.476,16.469c2.845,0,26.664,0,26.664,0h27.815 c2.296,0,12.875-10.181,20.063-10.181c7.187,0,10.829,10.181,12.576,10.181h18.265l7.188,10.779l7.486-100.91l5.091,114.984 l6.887-24.555h24.409c3.238,0,14.816-16.768,20.206-16.768s11.079,16.469,13.476,16.469c2.846,0,26.664,0,26.664,0" fill="none" stroke="lime" stroke-width="2" stroke-dasharray="3000"><animate attributeName="stroke-dashoffset" from="3000" to="0" dur="5s" linear="true" repeatCount="indefinite"/></path></svg>`,
+        damaged: `<svg width="100%" height="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid slice"><rect width="100%" height="100%" fill="black"/> <path d="M 0,114.5 h 8.7 c 1.3,0 2.5,-1.1 4.4,-1.7 0.8,-0.2 2.8,1.9 3.5,1.7 0.7,-0.2 1.1,-1.9 1.9,-1.5 2.3,1.1 2,-0.1 2.3,-0.1 0.3,0 1.6,0.6 2.3,0.8 0.7,0.2 0.7,0.1 1.5,0.3 0.8,0.2 3,-1.2 4.1,-1.1 1.1,0.1 2.1,1.1 3.7,0.9 3.7,-0.5 4.3,1.5 4.3,1.5 l 2.6,4.8 3.9,-66 1.2,95.8 c 0,0 1,-34.1 3.7,-34.4 0.7,-0.1 2.2,-1.4 2.9,-1.5 0.7,0 0.6,1.1 1.3,1 0.7,-0.1 2.4,0.9 3.1,0.8 0.7,-0.1 0.4,-1.2 1,-1.3 0.7,-0.1 2.1,-0.8 2.8,-0.8 0.6,-0.1 0.4,0.5 0.9,0.4 0.5,-0.1 0.6,0.9 1.1,0.9 0.4,0 1.3,-1.1 1.6,-1.1 0.3,0 7.3,-17.9 15,-17.4 7.7,0.6 7,17.7 16.7,17.7 1.2,0 3,-1.9 3.1,-0.01 0.1,1.5 2.4,-0.7 2.9,-0.03 0.8,1.2 2.5,0.2 3.1,0.2 0.6,0 0.4,0.2 0.5,-0.3 0.4,-1.2 0.8,0 1.1,0 0.3,0 0.5,0 0.7,-0.1 0.2,0 0.3,0 0.4,-0.1 c 0.1,0 0.1,-0.01 0.1,-0.01 h 17.5 h 8.7 c 1.3,0 2.5,-1.1 4.4,-1.7 0.8,-0.2 2.8,1.9 3.5,1.7 0.7,-0.2 1.1,-1.9 1.9,-1.5 2.3,1.1 2,-0.1 2.3,-0.1 0.3,0 1.6,0.6 2.3,0.8 0.7,0.2 0.7,0.1 1.5,0.3 0.8,0.2 3,-1.2 4.1,-1.1 1.1,0.1 2.1,1.1 3.7,0.9 3.7,-0.5 4.3,1.5 4.3,1.5 l 2.6,4.8 3.9,-66 1.2,95.8 c 0,0 1,-34.1 3.7,-34.4 0.7,-0.1 2.2,-1.4 2.9,-1.5 0.7,0 0.6,1.1 1.3,1 0.7,-0.1 2.4,0.9 3.1,0.8 0.7,-0.1 0.4,-1.2 1,-1.3 0.7,-0.1 2.1,-0.8 2.8,-0.8 0.6,-0.1 0.4,0.5 0.9,0.4 0.5,-0.1 0.6,0.9 1.1,0.9 0.4,0 1.3,-1.1 1.6,-1.1 0.3,0 7.3,-17.9 15,-17.4 7.7,0.6 7,17.7 16.7,17.7 1.2,0 3,-1.9 3.1,-0.01 0.1,1.5 2.4,-0.7 2.9,-0.03 0.8,1.2 2.5,0.2 3.1,0.2 0.6,0 0.4,0.2 0.5,-0.3 0.4,-1.2 0.8,0 1.1,0 0.3,0 0.5,0 0.7,-0.1 0.2,0 0.3,0 0.4,-0.1 c 0.1,0 0.1,-0.01 0.1,-0.01 h 17.5 h 8.7 c 1.3,0 2.5,-1.1 4.4,-1.7 0.8,-0.2 2.8,1.9 3.5,1.7 0.7,-0.2 1.1,-1.9 1.9,-1.5 2.3,1.1 2,-0.1 2.3,-0.1 0.3,0 1.6,0.6 2.3,0.8 0.7,0.2 0.7,0.1 1.5,0.3 0.8,0.2 3,-1.2 4.1,-1.1 1.1,0.1 2.1,1.1 3.7,0.9 3.7,-0.5 4.3,1.5 4.3,1.5 l 2.6,4.8 3.9,-66 1.2,95.8 c 0,0 1,-34.1 3.7,-34.4 0.7,-0.1 2.2,-1.4 2.9,-1.5 0.7,0 0.6,1.1 1.3,1 0.7,-0.1 2.4,0.9 3.1,0.8 0.7,-0.1 0.4,-1.2 1,-1.3 0.7,-0.1 2.1,-0.8 2.8,-0.8 0.6,-0.1 0.4,0.5 0.9,0.4 0.5,-0.1 0.6,0.9 1.1,0.9 0.4,0 1.3,-1.1 1.6,-1.1 0.3,0 7.3,-17.9 15,-17.4 7.7,0.6 7,17.7 16.7,17.7 1.2,0 3,-1.9 3.1,-0.01 0.1,1.5 2.4,-0.7 2.9,-0.03 0.8,1.2 2.5,0.2 3.1,0.2 0.6,0 0.4,0.2 0.5,-0.3 0.4,-1.2 0.8,0 1.1,0 0.3,0 0.5,0 0.7,-0.1 0.2,0 0.3,0 0.4,-0.1 c 0.1,0 0.1,-0.01 0.1,-0.01 h 17.5 h 8.7 c 1.3,0 2.5,-1.1 4.4,-1.7 0.8,-0.2 2.8,1.9 3.5,1.7 0.7,-0.2 1.1,-1.9 1.9,-1.5 2.3,1.1 2,-0.1 2.3,-0.1 0.3,0 1.6,0.6 2.3,0.8 0.7,0.2 0.7,0.1 1.5,0.3 0.8,0.2 3,-1.2 4.1,-1.1 1.1,0.1 2.1,1.1 3.7,0.9 3.7,-0.5 4.3,1.5 4.3,1.5 l 2.6,4.8 3.9,-66 1.2,95.8 c 0,0 1,-34.1 3.7,-34.4 0.7,-0.1 2.2,-1.4 2.9,-1.5 0.7,0 0.6,1.1 1.3,1 0.7,-0.1 2.4,0.9 3.1,0.8 0.7,-0.1 0.4,-1.2 1,-1.3 0.7,-0.1 2.1,-0.8 2.8,-0.8 0.6,-0.1 0.4,0.5 0.9,0.4 0.5,-0.1 0.6,0.9 1.1,0.9 0.4,0 1.3,-1.1 1.6,-1.1 0.3,0 7.3,-17.9 15,-17.4 7.7,0.6 7,17.7 16.7,17.7 1.2,0 3,-1.9 3.1,-0.01 0.1,1.5 2.4,-0.7 2.9,-0.03 0.8,1.2 2.5,0.2 3.1,0.2 0.6,0 0.4,0.2 0.5,-0.3 0.4,-1.2 0.8,0 1.1,0 0.3,0 0.5,0 0.7,-0.1 0.2,0 0.3,0 0.4,-0.1 c 0.1,0 0.1,-0.01 0.1,-0.01 h 17.5" fill="none" stroke="#FFD700" stroke-width="2"><animate attributeName="stroke-dashoffset" from="3000" to="0" dur="4s" linear="true" repeatCount="indefinite"/></path> </svg>`, // Using Yellow, slightly faster animation
+        dead: `<svg width="100%" height="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid slice"><rect width="100%" height="100%" fill="black"/> <path d="M0,100 H800" fill="none" stroke="#555555" stroke-width="4"></path> </svg>`, // Flatline
+    };
+    // Removed: injured, critical, broken SVGs
+
+    // --- Character Data Store (Mothership Structure) ---
+    let characters = {
+        // Example Characters
+        char1: { name: "RIPLEY", hpMax: 40, hpCurrent: 40, stress: 5, saveBody: 45, saveFear: 50, saveSanity: 40, saveArmor: 35, type: 'Marine', status: "Healthy", svgStateKey: 'healthy' },
+        npc1: { name: "COMMANDER", hpMax: 35, hpCurrent: 35, stress: 2, saveBody: 40, saveFear: 40, saveSanity: 55, saveArmor: 30, type: 'Teamster', status: "Healthy", svgStateKey: 'healthy' },
+        android1: { name: "SYNTH-4", hpMax: 50, hpCurrent: 25, stress: 0, saveBody: 60, saveFear: 90, saveSanity: 90, saveArmor: 50, type: 'Android', status: "Damaged", svgStateKey: 'damaged' },
+        xeno1: { name: "FACEHUGGER", hpMax: 10, hpCurrent: 10, stress: null, saveBody: 70, saveFear: null, saveSanity: null, saveArmor: 20, type: 'Creature', status: "Healthy", svgStateKey: 'healthy' },
+    };
+    let nextCombatantIdCounter = Object.keys(characters).length + 1; // Initial counter based on defaults
+    let isDraggingHpBar = false; let currentDragCharId = null;
+
+    // --- Functions ---
+    function generateNewCombatantId() { let newId; do { newId = `combatant${nextCombatantIdCounter++}`; } while (characters[newId]); return newId; }
+
+    function addCombatant() {
+        const newId = generateNewCombatantId();
+        // Default new unit for Mothership
+        characters[newId] = {
+            name: "NEW RECRUIT",
+            hpMax: 30, // Example default Max HP
+            hpCurrent: 30,
+            stress: 0,
+            saveBody: 30, // Example default Saves
+            saveFear: 30,
+            saveSanity: 30,
+            saveArmor: 30,
+            type: 'Teamster', // Default type
+            status: "Healthy",
+            svgStateKey: 'healthy'
+        };
+        renderDashboard(); // Re-render the whole dashboard
+        saveStateToLocalStorage(); // Save after adding
+    }
+
+    function removeCombatant(charId) {
+        const c = characters[charId];
+        if (!c) return;
+        // Added confirmation for removal
+        if (confirm(`Permanently remove ${c.name}?`)) {
+            delete characters[charId];
+            renderDashboard(); // Re-render the whole dashboard
+            saveStateToLocalStorage(); // Save after removing
+        }
+    }
+
+    // Name editing functions (no change needed)
+    function showNameInput(charId, inputId, displayId) { const i = document.getElementById(inputId); const d = document.getElementById(displayId); if (!i||!d) return; i.value = characters[charId].name; d.style.display = 'none'; i.style.display = 'inline-block'; i.focus(); i.select(); }
+    function hideNameInput(charId, inputId, displayId, save) { const i = document.getElementById(inputId); const d = document.getElementById(displayId); if (!i||!d) return; i.style.display = 'none'; d.style.display = 'inline-block'; if (save && i.value.trim() !== characters[charId].name ) { updateStatus(charId, 'setName', i.value); } else { renderCharacterCard(charId); } } // Calls updateStatus which saves
+
+    // SVG animation speed adjustment (Simplified)
+    function setAnimationSpeed(monitorElement, charData) {
+        const anim = monitorElement.querySelector('svg path animate');
+        if (anim) {
+            let dur = '5s'; // Healthy speed
+            if (charData.status === 'Damaged') {
+                dur = '4s'; // Damaged speed
+            }
+            // No specific speed for Dead (it's static)
+            if (anim.getAttribute('dur') !== dur) {
+                anim.setAttribute('dur', dur);
+            }
+        }
+    }
+
+    // HP Bar Dragging (no change needed in logic, interacts with updateStatus)
+    function handleHpBarInteraction(event, charId, type) { const c = characters[charId]; const mon = event.currentTarget; if (!c || c.status === 'Dead' || event.button !== 0) { isDraggingHpBar = false; currentDragCharId = null; mon.style.cursor = 'crosshair'; return; } const r = mon.getBoundingClientRect(); const pad = 5; const h = 12; const bot = r.height - pad; const top = bot - h; if (event.clientY < r.top + top - pad || event.clientY > r.top + bot + pad ) { if (isDraggingHpBar && type !== 'drag') { isDraggingHpBar = false; currentDragCharId = null; mon.style.cursor = 'crosshair'; } return; } const x = event.clientX - r.left - pad; const w = mon.clientWidth - (pad * 2); let hpPct = Math.max(0, Math.min(100, (x / w) * 100)); let hp = Math.round((hpPct / 100) * c.hpMax); switch (type) { case 'start': isDraggingHpBar = true; currentDragCharId = charId; updateStatus(charId, 'setCurrentHp', hp); mon.style.cursor = 'grabbing'; event.preventDefault(); break; case 'drag': if (isDraggingHpBar && currentDragCharId === charId) { updateStatus(charId, 'setCurrentHp', hp); } break; case 'stop': if (isDraggingHpBar && currentDragCharId === charId) { isDraggingHpBar = false; currentDragCharId = null; mon.style.cursor = 'crosshair'; /* State saved within updateStatus now */ } break; } }
+
+
+    // --- Save/Load Functions using Local Storage ---
+    const LOCAL_STORAGE_KEY = 'mothershipCrewManifestState'; // Changed Key
+    const THEME_STORAGE_KEY = 'mothershipCombatTheme'; // Changed Key
+
+    function saveStateToLocalStorage() {
+        try {
+            const stateToSave = { charactersData: characters, nextId: nextCombatantIdCounter };
+            const stateString = JSON.stringify(stateToSave);
+            localStorage.setItem(LOCAL_STORAGE_KEY, stateString);
+            // console.log("State saved."); // Less noisy console
+        } catch (error) {
+            console.error("Error saving state:", error);
+            alert("Could not save state. Check browser permissions/storage limits.");
+        }
+    }
+
+    function loadStateFromLocalStorage() {
+        const savedStateString = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!savedStateString) {
+            console.log("No saved state found. Using defaults.");
+            return false;
+        }
+        try {
+            const loadedState = JSON.parse(savedStateString);
+            if (typeof loadedState === 'object' && loadedState !== null && loadedState.charactersData) {
+                characters = loadedState.charactersData;
+                // Ensure loaded characters have new fields if loading old data (provide defaults)
+                Object.values(characters).forEach(char => {
+                    if (char.saveBody === undefined) char.saveBody = 30;
+                    if (char.saveFear === undefined) char.saveFear = 30;
+                    if (char.saveSanity === undefined) char.saveSanity = 30;
+                    if (char.saveArmor === undefined) char.saveArmor = 30;
+                    // Remove old fields if present
+                    delete char.initiative;
+                    delete char.radiation;
+                    delete char.conditions;
+                });
+                nextCombatantIdCounter = loadedState.nextId || calculateNextIdCounter(characters);
+                console.log("State loaded successfully.");
+                renderDashboard(); // Render *after* loading
+                return true;
+            } else {
+                throw new Error("Invalid data format in local storage.");
+            }
+        } catch (error) {
+            console.error("Error parsing loaded state:", error);
+            alert(`Could not load saved state. It might be corrupted.\nError: ${error.message}\n\nStarting with defaults.`);
+            localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
+            return false;
+        }
+    }
+
+    function calculateNextIdCounter(loadedChars) { let maxId = 0; for (const id in loadedChars) { if (id.startsWith('combatant')) { const num = parseInt(id.substring(9), 10); if (!isNaN(num) && num >= maxId) { maxId = num + 1; } } } return Math.max(maxId, 1); }
+    function clearSavedData() { if (confirm("ALERT! Clear all saved manifest data from this browser? This cannot be undone and will reload the page with defaults.")) { localStorage.removeItem(LOCAL_STORAGE_KEY); window.location.reload(); } }
+
+    // --- Theme Toggling --- (No change needed)
+    function applyTheme(theme) { if (theme === 'dark') { document.body.classList.add('dark-mode'); } else { document.body.classList.remove('dark-mode'); } }
+    function toggleTheme() { let currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light'; let newTheme = currentTheme === 'light' ? 'dark' : 'light'; localStorage.setItem(THEME_STORAGE_KEY, newTheme); applyTheme(newTheme); }
+
+    /**
+     * Renders or updates a single character card in the DOM.
+     */
+    function renderCharacterCard(charId) {
+        const character = characters[charId];
+        const card = document.getElementById(charId);
+        if (!character || !card) return;
+
+        // Update status class
+        const statuses = ['healthy', 'damaged', 'dead']; // Simplified statuses
+        statuses.forEach(s => card.classList.remove(`status-${s}`));
+        if (character.status) {
+            card.classList.add(`status-${character.status.toLowerCase()}`);
+        }
+
+        // Update Name (respecting focus)
+        const nameDisplay = card.querySelector('.char-name-display');
+        const nameInput = card.querySelector('.char-name-edit');
+        if (nameDisplay && nameInput && document.activeElement !== nameInput) {
+            nameDisplay.textContent = character.name.toUpperCase();
+            nameInput.value = character.name;
+            nameDisplay.style.display = 'inline-block';
+            nameInput.style.display = 'none';
+        } else if (nameDisplay && nameInput && document.activeElement === nameInput) {
+            // Keep input visible if it's focused
+            nameDisplay.style.display = 'none';
+        }
+
+        // Update Status Overlay Text
+        const statusOverlay = card.querySelector('.status-overlay');
+        if(statusOverlay) statusOverlay.textContent = character.status.toUpperCase();
+
+        // Update Inputs (respecting focus)
+        const maxHpInput = card.querySelector('.input-hp-max');
+        if (maxHpInput && document.activeElement !== maxHpInput) maxHpInput.value = character.hpMax;
+
+        const currentHpInput = card.querySelector('.input-hp-current');
+        if (currentHpInput && document.activeElement !== currentHpInput) currentHpInput.value = character.hpCurrent;
+
+        const stressInput = card.querySelector('.input-stress');
+        const canHaveStress = (character.type !== 'Creature' && character.type !== 'Android'); // Androids don't have stress
+        const stressElements = [stressInput, card.querySelector(`#inc-stress-${charId}`), card.querySelector(`#dec-stress-${charId}`)];
+        stressElements.forEach(el => { if(el) el.disabled = !canHaveStress; });
+        if (stressInput && document.activeElement !== stressInput) stressInput.value = canHaveStress ? character.stress : '';
+
+        // Update Saves (respecting focus)
+        const bodySaveInput = card.querySelector('.input-save-body');
+        if (bodySaveInput && document.activeElement !== bodySaveInput) bodySaveInput.value = character.saveBody ?? '';
+        const fearSaveInput = card.querySelector('.input-save-fear');
+        if (fearSaveInput && document.activeElement !== fearSaveInput) fearSaveInput.value = character.saveFear ?? '';
+        const sanitySaveInput = card.querySelector('.input-save-sanity');
+        if (sanitySaveInput && document.activeElement !== sanitySaveInput) sanitySaveInput.value = character.saveSanity ?? '';
+        const armorSaveInput = card.querySelector('.input-save-armor');
+        if (armorSaveInput && document.activeElement !== armorSaveInput) armorSaveInput.value = character.saveArmor ?? '';
+
+
+        const typeSelect = card.querySelector('.type-select');
+        if (typeSelect && document.activeElement !== typeSelect) {
+            typeSelect.value = character.type;
+        }
+
+        // Update HP Gradient Bar Mask
+        const hpPercent = character.hpMax > 0 ? (character.hpCurrent / character.hpMax) * 100 : 0;
+        const maskElement = card.querySelector('.hp-gradient-mask');
+        if (maskElement) {
+            maskElement.style.width = `${100 - hpPercent}%`;
+        }
+
+        // Update Health Monitor SVG
+        const monitor = card.querySelector('.health-monitor');
+        const svgContainer = card.querySelector('.svg-container');
+        const svgKey = character.svgStateKey; // Key determined in updateStatus
+        if (monitor && svgContainer && monitor.dataset.currentSvgKey !== svgKey) {
+            // Use requestAnimationFrame for smoother visual updates
+            requestAnimationFrame(() => {
+                // Double check card still exists before updating DOM
+                if(document.getElementById(charId)) {
+                     svgContainer.innerHTML = svgStates[svgKey] || svgStates['healthy']; // Fallback to healthy
+                     monitor.dataset.currentSvgKey = svgKey;
+                     setAnimationSpeed(monitor, character); // Adjust animation speed based on state
+                }
+            });
+        } else if (monitor && svgContainer.innerHTML === '') {
+            // Ensure SVG is rendered on initial load if key hasn't changed but container is empty
+             svgContainer.innerHTML = svgStates[svgKey] || svgStates['healthy'];
+             monitor.dataset.currentSvgKey = svgKey;
+             setAnimationSpeed(monitor, character);
+        } else if (monitor) {
+             // Still potentially update animation speed even if SVG doesn't change
+             setAnimationSpeed(monitor, character);
+        }
+
+        // Update Mark Dead Button (always shows "Mark Dead" unless dead)
+        const deadBtn = card.querySelector('.mark-dead-btn');
+        if (deadBtn) {
+            deadBtn.disabled = (character.status === 'Dead'); // Disable if already dead
+        }
+    }
+
+
+    /**
+     * Creates the HTML structure for a single character card (Mothership Version).
+     */
+    function createCharacterCardElement(charId) {
+        const character = characters[charId];
+        if (!character) return null;
+
+        const card = document.createElement('div');
+        card.className = 'character-card';
+        card.id = charId;
+        if (character.status) {
+            card.classList.add(`status-${character.status.toLowerCase()}`);
+        }
+
+        const nameDisplayId = `name-display-${charId}`;
+        const nameInputId = `name-edit-${charId}`;
+        const typeSelectId = `type-${charId}`;
+
+        // Determine if stress controls should be enabled
+        const stressDisabled = (character.type === 'Creature' || character.type === 'Android') ? 'disabled' : '';
+        const fearDisabled = (character.type === 'Android') ? 'disabled' : ''; // Androids immune to Fear/Sanity
+        const sanityDisabled = (character.type === 'Android') ? 'disabled' : '';
+
+        card.innerHTML = `
+            <button class="remove-button" onclick="removeCombatant('${charId}')" title="Remove ${character.name}">X</button>
+
+            <div class="health-monitor" data-current-svg-key=""
+                 onmousedown="handleHpBarInteraction(event, '${charId}', 'start')"
+                 onmousemove="handleHpBarInteraction(event, '${charId}', 'drag')"
+                 onmouseup="handleHpBarInteraction(event, '${charId}', 'stop')"
+                 onmouseleave="handleHpBarInteraction(event, '${charId}', 'stop')">
+                <div class="hp-gradient-bar"></div>
+                <div class="hp-gradient-mask"></div>
+                <div class="svg-container"></div>
+                <div class="monitor-text-overlay">
+                    <div>
+                        <span class="char-name-display" id="${nameDisplayId}" onclick="showNameInput('${charId}', '${nameInputId}', '${nameDisplayId}')" title="Click to edit name">${character.name.toUpperCase()}</span>
+                        <input type="text" class="char-name-edit" id="${nameInputId}" value="${character.name}"
+                               onblur="hideNameInput('${charId}', '${nameInputId}', '${nameDisplayId}', true)"
+                               onkeydown="if(event.key === 'Enter') { this.blur(); } else if (event.key === 'Escape') { hideNameInput('${charId}', '${nameInputId}', '${nameDisplayId}', false); this.blur(); }"
+                               placeholder="ENTER NAME" style="display: none;">
+                    </div>
+                    <span class="status-overlay">${character.status.toUpperCase()}</span>
+                </div>
+            </div>
+
+            <div class="hp-controls">
+                <div class="hp-adjust">
+                    <span>
+                        <button onclick="updateStatus('${charId}', 'decrementHp', 1)" title="Decrease HP by 1">-</button>
+                        <label> ADJUST HP </label>
+                        <button onclick="updateStatus('${charId}', 'incrementHp', 1)" title="Increase HP by 1">+</button>
+                    </span>
+                </div>
+                <div class="hp-inputs-wrapper">
+                     <div class="hp-input-group">
+                        <label for="max-hp-${charId}">MAX:</label>
+                        <input type="number" id="max-hp-${charId}" class="input-hp-max" value="${character.hpMax}" min="1" onchange="updateStatus('${charId}', 'setMaxHp', this.value)">
+                    </div>
+                   <div class="hp-input-group">
+                        <label for="current-hp-${charId}">CURRENT:</label>
+                        <input type="number" id="current-hp-${charId}" class="input-hp-current" value="${character.hpCurrent}" min="0" onchange="updateStatus('${charId}', 'setCurrentHp', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="stat-adjust">
+                    <label for="${typeSelectId}">CLASS/TYPE:</label> <select id="${typeSelectId}" class="type-select" onchange="updateStatus('${charId}', 'setType', this.value)">
+                        <option value="Marine" ${character.type === 'Marine' ? 'selected' : ''}>Marine</option>
+                        <option value="Scientist" ${character.type === 'Scientist' ? 'selected' : ''}>Scientist</option>
+                        <option value="Teamster" ${character.type === 'Teamster' ? 'selected' : ''}>Teamster</option>
+                        <option value="Android" ${character.type === 'Android' ? 'selected' : ''}>Android</option>
+                        <option value="NPC" ${character.type === 'NPC' ? 'selected' : ''}>NPC</option>
+                        <option value="Creature" ${character.type === 'Creature' ? 'selected' : ''}>Creature</option>
+                    </select>
+                </div>
+                <div class="stat-adjust">
+                    <label for="stress-${charId}">STRESS:</label>
+                    <div class="value-adjust-wrapper">
+                        <button id="dec-stress-${charId}" onclick="updateStatus('${charId}', 'decrementStress', 1)" ${stressDisabled}>-</button>
+                        <input type="number" id="stress-${charId}" class="input-stress" value="${character.stress ?? ''}" min="0" onchange="updateStatus('${charId}', 'setStress', this.value)" ${stressDisabled}>
+                        <button id="inc-stress-${charId}" onclick="updateStatus('${charId}', 'incrementStress', 1)" ${stressDisabled}>+</button>
+                    </div>
+                </div>
+                </div>
+
+            <div class="saves-panel"> <div class="save-input-group">
+                     <label for="save-body-${charId}">BODY:</label>
+                     <input type="number" id="save-body-${charId}" class="input-save-body" value="${character.saveBody ?? ''}" min="0" max="100" onchange="updateStatus('${charId}', 'setSaveBody', this.value)">
+                </div>
+                 <div class="save-input-group">
+                     <label for="save-fear-${charId}">FEAR:</label>
+                     <input type="number" id="save-fear-${charId}" class="input-save-fear" value="${character.saveFear ?? ''}" min="0" max="100" onchange="updateStatus('${charId}', 'setSaveFear', this.value)" ${fearDisabled}>
+                </div>
+                 <div class="save-input-group">
+                     <label for="save-sanity-${charId}">SANITY:</label>
+                     <input type="number" id="save-sanity-${charId}" class="input-save-sanity" value="${character.saveSanity ?? ''}" min="0" max="100" onchange="updateStatus('${charId}', 'setSaveSanity', this.value)" ${sanityDisabled}>
+                </div>
+                 <div class="save-input-group">
+                     <label for="save-armor-${charId}">ARMOR:</label>
+                     <input type="number" id="save-armor-${charId}" class="input-save-armor" value="${character.saveArmor ?? ''}" min="0" max="100" onchange="updateStatus('${charId}', 'setSaveArmor', this.value)">
+                </div>
+            </div>
+
+            <div class="action-button-area"> <button class="mark-dead-btn" id="dead-${charId}" onclick="updateStatus('${charId}', 'setDead', true)" title="Mark character as Dead">Mark Dead</button>
+            </div>
+        `;
+        return card;
+    }
+
+    /**
+     * Renders the entire dashboard, creating/updating all character cards.
+     * Removed Initiative sorting.
+     */
+    function renderDashboard() {
+        const dashboardElement = document.getElementById('dashboard');
+        if (!dashboardElement) {
+            console.error("Dashboard element not found!");
+            return;
+        }
+
+        // Preserve focus across re-renders
+        const activeElement = document.activeElement;
+        const activeElementId = activeElement ? activeElement.id : null;
+        // const activeElementValue = activeElement ? activeElement.value : null; // Value restore can be tricky
+        const activeElementSelectionStart = activeElement ? activeElement.selectionStart : null;
+        const activeElementSelectionEnd = activeElement ? activeElement.selectionEnd : null;
+
+        dashboardElement.innerHTML = ''; // Clear existing cards
+
+        // Get character IDs, no sorting needed now
+        const sortedCharIds = Object.keys(characters);
+
+        // Create and append cards
+        sortedCharIds.forEach(charId => {
+            const cardElement = createCharacterCardElement(charId);
+            if (cardElement) {
+                dashboardElement.appendChild(cardElement);
+                renderCharacterCard(charId); // Initial render of card details
+            }
+        });
+
+        // Restore focus if possible
+        if (activeElementId) {
+            const el = document.getElementById(activeElementId);
+            if (el) {
+                el.focus();
+                // Restore selection range if applicable (for text inputs)
+                if (activeElementSelectionStart !== null && typeof el.setSelectionRange === 'function') {
+                    try {
+                         el.setSelectionRange(activeElementSelectionStart, activeElementSelectionEnd);
+                    } catch (e) { console.warn("Could not restore selection range.", e); }
+                }
+            }
+        }
+    }
+
+    /**
+     * Central function to update character data and trigger redraws (Mothership Version).
+     */
+    function updateStatus(charId, action, value) {
+        const character = characters[charId];
+        if (!character) return;
+
+        // Define actions allowed even when dead
+        const allowedIfDead = ['setName', 'setMaxHp', 'setType', 'setSaveBody', 'setSaveFear', 'setSaveSanity', 'setSaveArmor'];
+
+        // Prevent most actions if dead
+        if (character.status === 'Dead' && !allowedIfDead.includes(action)) {
+            console.log(`${character.name} is Dead. No further changes allowed except Name, Max HP, Type, or Saves.`);
+            return;
+        }
+
+        const previousStatus = character.status;
+        let needsFullRender = false; // Flag if type change requires re-rendering card structure potentially
+
+        switch (action) {
+            case 'setName':
+                if(typeof value === 'string') { character.name = value.trim() || "UNNAMED"; }
+                break;
+            case 'setType':
+                const validTypes = ['Marine', 'Scientist', 'Teamster', 'Android', 'NPC', 'Creature'];
+                if (validTypes.includes(value)) {
+                    const oldType = character.type;
+                    character.type = value;
+                    // Reset stress/saves if changing to/from Android/Creature
+                    if ((oldType !== 'Android' && oldType !== 'Creature') && (value === 'Android' || value === 'Creature')) {
+                        character.stress = null;
+                    } else if ((oldType === 'Android' || oldType === 'Creature') && (value !== 'Android' && value !== 'Creature')) {
+                         if (character.stress === null) character.stress = 0;
+                    }
+                    if (value === 'Android') { // Androids specific saves/stress
+                        character.stress = null;
+                        character.saveFear = null; // Or set to 90/100? Let's use null for clarity
+                        character.saveSanity = null;
+                    } else if (oldType === 'Android') { // Reset if changing FROM android
+                        if (character.saveFear === null) character.saveFear = 30; // Reset to default
+                        if (character.saveSanity === null) character.saveSanity = 30;
+                    }
+                     if (value === 'Creature') {
+                         character.stress = null; // Creatures usually don't track stress
+                     }
+
+                    needsFullRender = true; // Need to redraw card to enable/disable inputs correctly
+                }
+                break;
+            case 'setMaxHp':
+                const newMaxHp = parseInt(value, 10);
+                if (!isNaN(newMaxHp) && newMaxHp >= 1) {
+                    character.hpMax = newMaxHp;
+                    // Ensure current HP doesn't exceed new max (unless dead)
+                    if (character.status !== 'Dead') {
+                        character.hpCurrent = Math.min(character.hpCurrent, character.hpMax);
+                    }
+                } else {
+                    console.warn(`Invalid Max HP: ${value}`);
+                    // Revert invalid input visually (optional)
+                    const iEl = document.getElementById(`max-hp-${charId}`); if(iEl) iEl.value = character.hpMax;
+                }
+                break;
+            case 'setCurrentHp':
+                 const newCurrentHp = parseInt(value, 10);
+                 if (!isNaN(newCurrentHp)) {
+                     // Can't change HP if dead via this method (use Mark Dead)
+                     if (character.status === 'Dead') break;
+                     character.hpCurrent = Math.max(0, Math.min(newCurrentHp, character.hpMax));
+                 } else {
+                     console.warn(`Invalid Current HP: ${value}`);
+                     const iEl = document.getElementById(`current-hp-${charId}`); if(iEl) iEl.value = character.hpCurrent;
+                 }
+                 break;
+            case 'incrementHp':
+                if (character.status === 'Dead') break; // Cannot increment if dead
+                character.hpCurrent = Math.min(character.hpMax, character.hpCurrent + 1);
+                break;
+            case 'decrementHp':
+                if (character.status === 'Dead') break; // Cannot decrement if dead
+                character.hpCurrent = Math.max(0, character.hpCurrent - 1);
+                break;
+            case 'setStress':
+                const newStress = parseInt(value, 10);
+                // Allow stress change only if not Android/Creature
+                if (character.type !== 'Creature' && character.type !== 'Android' && !isNaN(newStress)) {
+                     character.stress = Math.max(0, newStress); // No upper limit enforced here, game rules apply
+                } else if (character.type !== 'Creature' && character.type !== 'Android') {
+                     console.warn(`Invalid Stress: ${value}`);
+                     const iEl = document.getElementById(`stress-${charId}`); if(iEl) iEl.value = character.stress;
+                }
+                break;
+            case 'incrementStress':
+                if(character.type !== 'Creature' && character.type !== 'Android' && character.stress !== null) { character.stress = character.stress + 1; }
+                break;
+            case 'decrementStress':
+                if(character.type !== 'Creature' && character.type !== 'Android' && character.stress !== null) { character.stress = Math.max(0, character.stress - 1); }
+                break;
+            // --- New Save Setters ---
+            case 'setSaveBody':
+                const newBody = parseInt(value, 10);
+                if (!isNaN(newBody) && newBody >= 0 && newBody <= 100) { character.saveBody = newBody; }
+                else { console.warn(`Invalid Body Save: ${value}`); const iEl = document.getElementById(`save-body-${charId}`); if(iEl) iEl.value = character.saveBody; }
+                break;
+            case 'setSaveFear':
+                const newFear = parseInt(value, 10);
+                 if (character.type !== 'Android' && !isNaN(newFear) && newFear >= 0 && newFear <= 100) { character.saveFear = newFear; }
+                 else if (character.type !== 'Android') { console.warn(`Invalid Fear Save: ${value}`); const iEl = document.getElementById(`save-fear-${charId}`); if(iEl) iEl.value = character.saveFear; }
+                 break;
+            case 'setSaveSanity':
+                const newSanity = parseInt(value, 10);
+                if (character.type !== 'Android' && !isNaN(newSanity) && newSanity >= 0 && newSanity <= 100) { character.saveSanity = newSanity; }
+                else if (character.type !== 'Android') { console.warn(`Invalid Sanity Save: ${value}`); const iEl = document.getElementById(`save-sanity-${charId}`); if(iEl) iEl.value = character.saveSanity; }
+                break;
+            case 'setSaveArmor':
+                const newArmor = parseInt(value, 10);
+                if (!isNaN(newArmor) && newArmor >= 0 && newArmor <= 100) { character.saveArmor = newArmor; }
+                else { console.warn(`Invalid Armor Save: ${value}`); const iEl = document.getElementById(`save-armor-${charId}`); if(iEl) iEl.value = character.saveArmor; }
+                break;
+             // --- Set Dead ---
+            case 'setDead':
+                if (character.status !== 'Dead') {
+                    character.status = 'Dead';
+                    character.hpCurrent = 0; // Ensure HP is 0
+                    character.svgStateKey = 'dead';
+                    console.log(`${character.name} marked as Dead.`);
+                    needsFullRender = true; // Redraw to apply dead state styling/disabling
+                }
+                break;
+             // Removed: Initiative, Radiation, Condition, Revive actions
+        }
+
+        // --- Determine Status and SVG state (Simplified Mothership Logic) ---
+        if (character.status !== 'Dead') { // Only recalculate if not already dead
+             if (character.hpCurrent <= 0) {
+                 // If HP dropped to 0 or below, mark as dead automatically
+                 character.status = 'Dead';
+                 character.svgStateKey = 'dead';
+                 console.log(`${character.name} reached 0 HP and is now Dead.`);
+                 needsFullRender = true; // Redraw needed for dead state
+             } else if (character.hpCurrent < character.hpMax) {
+                 character.status = 'Damaged';
+                 character.svgStateKey = 'damaged';
+             } else { // hpCurrent >= hpMax
+                 character.status = 'Healthy';
+                 character.svgStateKey = 'healthy';
+             }
+        } else {
+             // If dead, ensure state is consistent
+             character.svgStateKey = 'dead';
+             if (character.hpCurrent !== 0) character.hpCurrent = 0; // Force HP to 0 if dead
+        }
+
+        // Save state after any change
+        saveStateToLocalStorage();
+
+        // Trigger Re-render
+        if (needsFullRender) {
+            renderDashboard(); // Full redraw if type changed or unit died/revived
+        } else {
+            renderCharacterCard(charId); // Otherwise, just update the specific card
+        }
+    }
+
+    // --- Initial Load & Render ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Apply saved theme first
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light'; // Default to light
+        applyTheme(savedTheme);
+
+        // Load saved character state OR render defaults
+        if (!loadStateFromLocalStorage()) {
+            // If load failed or no data, calculate next ID from defaults and render
+            nextCombatantIdCounter = calculateNextIdCounter(characters);
+            renderDashboard();
+        }
+        // Note: renderDashboard() is called within loadStateFromLocalStorage on success now
+    });
+
+</script>
+
+</body>
+</html>
